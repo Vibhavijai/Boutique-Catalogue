@@ -2,7 +2,7 @@
 
 Responsive clothing catalogue with Men/Women pages, category filtering, search, sorting, INR prices, WhatsApp enquiries and private admin panel for product/photo management.
 
-The storefront previews as **MAISON VASTRA** and uses the sample WhatsApp number `919876543210`. Replace it with your own number before publishing. The five supplied shirt photos appear under Men → Shirts. Light and dark themes are both available and the choice is remembered.
+The storefront previews as **Zeya** and uses the sample WhatsApp number `919876543210`. Replace it with your own number before publishing. The five supplied shirt photos appear under Men → Shirts. Light and dark themes are both available and the choice is remembered.
 
 ## Included
 
@@ -66,7 +66,7 @@ git init
 git add .
 git commit -m "Create premium boutique catalogue"
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/premium-boutique-catalogue.git
+git remote add origin https://github.com/Vibhavijai/zeya.git
 git push -u origin main
 ```
 
@@ -80,7 +80,7 @@ git push -u origin main
    - Production branch: `main`
    - Build command: `npm run build`
    - Build output directory: `dist`
-5. In your Pages project, open Settings → Environment variables / Variables and Secrets. Add the same variables from `.env.local` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SHOP_NAME`, `VITE_SHOP_TAGLINE`, `VITE_WHATSAPP_NUMBER`, `VITE_SHOP_ADDRESS`, `VITE_CURRENCY`) for Production. Add them to Preview too if you use preview builds.
+5. In your Cloudflare Worker project, add the same `VITE_` variables from `.env.local` as build-time environment variables before deploying, so the production bundle uses your Supabase project and Zeya storefront settings.
 6. Deploy. Cloudflare gives you a public `*.pages.dev` URL. If you change environment variables later, trigger a new deployment because Vite reads them at build time.
 7. Test `/`, `/collection/men`, `/collection/women`, `/admin/login`. Sign in and test add/edit/hide/delete.
 
@@ -100,7 +100,9 @@ Official guides:
 
 ## 5. Updating collections
 
-Use your deployed site `/admin/login`. Add product photo, title, price, collection, category, sizes, colours and description. Select whether it is available and/or featured. Saving updates Supabase immediately; you do not redeploy for product data changes.
+Use your deployed site `/admin/login`. Add one or more product photos, title, price, collection, category, size measurements in centimetres, colours and description. Product photos can be swiped in the storefront, and customers can tap a size to flip it and view its measurement. Select whether it is available and/or featured. Saving updates Supabase immediately; you do not redeploy for product data changes.
+
+Before deploying the multi-photo and size-chart update, run `supabase-schema.sql` again in the Supabase SQL Editor. It adds the new JSON columns and carries existing single-photo products forward without removing their current data.
 
 To add new category labels, update `cats` in `src/App.jsx` (collection filters) and `catOptions` in `src/App.jsx` (admin options), then push the code update to GitHub to redeploy.
 

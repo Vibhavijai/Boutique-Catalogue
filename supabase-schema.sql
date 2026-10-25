@@ -9,6 +9,16 @@ create table if not exists public.products (
  image_url text not null, image_path text, available boolean not null default true,
  featured boolean not null default false, created_at timestamptz not null default now()
 );
+alter table public.products
+ add column if not exists image_urls jsonb not null default '[]'::jsonb,
+ add column if not exists image_paths jsonb not null default '[]'::jsonb,
+ add column if not exists size_chart jsonb not null default '[]'::jsonb;
+update public.products
+set image_urls=jsonb_build_array(image_url)
+where image_url is not null and image_urls='[]'::jsonb;
+update public.products
+set image_paths=jsonb_build_array(image_path)
+where image_path is not null and image_paths='[]'::jsonb;
 alter table public.products enable row level security;
 drop policy if exists "Public can view available products" on public.products;
 create policy "Public can view available products" on public.products for select to anon,authenticated using(available=true);

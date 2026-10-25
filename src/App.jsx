@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Routes,
   Route,
@@ -21,8 +21,60 @@ import {
   PackagePlus,
   Sun,
   Moon,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
 } from "lucide-react";
 import { db, ready, shop, price, waLink, image } from "./lib/store.js";
+
+function productImages(product) {
+  const urls = Array.isArray(product.image_urls) ? product.image_urls : [];
+  const paths = Array.isArray(product.image_paths) ? product.image_paths : [];
+
+  if (urls.length) {
+    return urls.map((url, index) => ({ url, path: paths[index] || null }));
+  }
+
+  return product.image_url
+    ? [{ url: product.image_url, path: product.image_path || null }]
+    : [];
+}
+
+function productSizeChart(product) {
+  if (Array.isArray(product.size_chart) && product.size_chart.length) {
+    return product.size_chart.map(({ size, cm }) => ({
+      size: String(size || ""),
+      cm: cm == null ? "" : String(cm),
+    }));
+  }
+
+  return (product.sizes || "")
+    .split(/[,|]/)
+    .map((size) => size.trim())
+    .filter(Boolean)
+    .map((size) => ({ size, cm: "" }));
+}
+
+function SizeChip({ size, cm }) {
+  const [flipped, setFlipped] = useState(false);
+  const measurement = cm ? `${cm} cm` : "Add cm";
+
+  return (
+    <button
+      className={`size-chip${flipped ? " flipped" : ""}`}
+      type="button"
+      onClick={() => setFlipped((current) => !current)}
+      aria-label={`${size}, ${cm ? `${cm} cm` : "measurement not set"}. Tap to flip.`}
+      aria-pressed={flipped}
+      title="Tap to see measurement"
+    >
+      <span className="size-chip-inner">
+        <span className="size-chip-face">{size}</span>
+        <span className="size-chip-face size-chip-back">{measurement}</span>
+      </span>
+    </button>
+  );
+}
 
 function useTheme() {
   const [theme, setTheme] = useState(
@@ -48,7 +100,7 @@ function Header() {
   return (
     <header className="header">
       <Link className="brand" to="/">
-        <b>{shop.name}</b>
+        <b className="brand-wordmark">{shop.name}</b>
       </Link>
       <nav className={open ? "nav open" : "nav"}>
         <NavLink to="/collection/men" onClick={() => setOpen(false)}>
@@ -64,8 +116,12 @@ function Header() {
           onClick={toggleTheme}
           aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
           title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          aria-pressed={theme === "dark"}
         >
           {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+          <span className="theme-label">
+            {theme === "light" ? "Dark" : "Light"}
+          </span>
         </button>
         <button
           className="menu"
@@ -89,21 +145,100 @@ function Footer() {
 }
 
 function ProductCard({ product }) {
+  const images = productImages(product);
+  const [activeImage, setActiveImage] = useState(0);
+  const imageTrack = useRef(null);
+
+  function showImage(index) {
+    const next = Math.max(0, Math.min(index, images.length - 1));
+    setActiveImage(next);
+    imageTrack.current?.scrollTo({
+      left: next * imageTrack.current.clientWidth,
+      behavior: "smooth",
+    });
+  }
+
+  function updateActiveImage() {
+    if (!imageTrack.current) return;
+    setActiveImage(
+      Math.round(imageTrack.current.scrollLeft / imageTrack.current.clientWidth),
+    );
+  }
+
   return (
     <article className="product">
       <div className="prod-img">
-        {product.image_url && (
-          <img
-            src={image(product.image_url)}
-            alt={product.title}
-            loading="lazy"
-          />
+        <div
+          className="product-image-track"
+          ref={imageTrack}
+          onScroll={updateActiveImage}
+          aria-label={`${product.title} photos`}
+        >
+          {images.map((item, index) => (
+            <img
+              key={item.path || item.url}
+              src={image(item.url)}
+              alt={`${product.title}, photo ${index + 1} of ${images.length}`}
+              loading={index ? "lazy" : "eager"}
+            />
+          ))}
+        </div>
+        {images.length > 1 && (
+          <>
+            <button
+              className="image-arrow previous"
+              type="button"
+              onClick={() => showImage(activeImage - 1)}
+              aria-label="Previous product photo"
+              disabled={activeImage === 0}
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              className="image-arrow next"
+              type="button"
+              onClick={() => showImage(activeImage + 1)}
+              aria-label="Next product photo"
+              disabled={activeImage === images.length - 1}
+            >
+              <ChevronRight size={18} />
+            </button>
+            <div
+              className="image-dots"
+              aria-label={`Photo ${activeImage + 1} of ${images.length}`}
+            >
+              {images.map((item, index) => (
+                <button
+                  key={item.path || item.url}
+                  type="button"
+                  className={index === activeImage ? "active" : ""}
+                  onClick={() => showImage(index)}
+                  aria-label={`Show photo ${index + 1}`}
+                  aria-current={index === activeImage ? "true" : undefined}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
       <div className="prod-copy">
         <h2>{product.title}</h2>
         <b>{price(product.price)}</b>
-        {product.colors && <p>{product.colors}</p>}
+        {product.sizes && (
+          <div
+            className="product-sizes"
+            role="group"
+            aria-label={`Available sizes: ${product.sizes}`}
+          >
+            <span>Sizes</span>
+            <div>
+              {productSizeChart(product).map(({ size, cm }) => (
+                <SizeChip size={size} cm={cm} key={size} />
+              ))}
+            </div>
+          </div>
+        )}
+        {product.colors && <p>Colour: {product.colors}</p>}
         <a
           className="product-enquiry"
           href={waLink(
@@ -129,10 +264,33 @@ function Home() {
   return (
     <>
       <Header />
+      <section className="brand-banner" aria-labelledby="brand-banner-title">
+        <div className="brand-banner-inner">
+          <span className="brand-banner-sun" aria-hidden="true">
+            <Sun size={42} strokeWidth={1} />
+          </span>
+          <p className="brand-banner-eyebrow">A BOUTIQUE FOR EVERY MOMENT</p>
+          <h1 id="brand-banner-title">{shop.name}</h1>
+          <p className="brand-banner-copy">
+            Thoughtfully chosen styles, made to feel like you.
+            <br />
+            Everyday elegance with a little extra sunshine.
+          </p>
+          <span className="brand-banner-rule" aria-hidden="true" />
+        </div>
+      </section>
       <main className="category-home">
+        <div className="browse-intro">
+          <p className="brand-banner-eyebrow">THE ZEYA EDIT</p>
+          <h2>Find your next favourite.</h2>
+          <p>Thoughtful pieces for the moments that make up your day.</p>
+        </div>
         {Object.entries(categories).map(([gender, items]) => (
           <section className="category-group" key={gender}>
-            <h1>{gender}</h1>
+            <div className="category-group-heading">
+              <h1>{gender}</h1>
+              <span>Curated for you</span>
+            </div>
             <div className="category-links">
               {items.map((category) => (
                 <Link
@@ -356,7 +514,9 @@ function Admin() {
   const [session, SS] = useState(null),
     [products, SP] = useState([]),
     [form, F] = useState(emptyForm),
-    [photo, PH] = useState(null),
+    [photos, PH] = useState([]),
+    [imageDraft, ID] = useState([]),
+    [sizeRows, SZ] = useState([{ size: "", cm: "" }]),
     [editing, ED] = useState(null),
     [search, SE] = useState(""),
     [notice, N] = useState(""),
@@ -402,13 +562,14 @@ function Admin() {
       gender: p.gender,
       category: p.category,
       product_code: p.product_code || "",
-      sizes: p.sizes || "",
       colors: p.colors || "",
       description: p.description || "",
       available: p.available,
       featured: p.featured,
     });
-    PH(null);
+    PH([]);
+    ID(productImages(p));
+    SZ(productSizeChart(p));
     N("");
     ER("");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -416,7 +577,9 @@ function Admin() {
   function reset() {
     ED(null);
     F(emptyForm);
-    PH(null);
+    PH([]);
+    ID([]);
+    SZ([{ size: "", cm: "" }]);
     N("");
     ER("");
   }
@@ -430,28 +593,29 @@ function Admin() {
       B(false);
       return;
     }
-    if (!editing && !photo) {
+    if (!imageDraft.length && !photos.length) {
       ER("Choose a product image.");
       B(false);
       return;
     }
-    if (photo && photo.size > 5 * 1024 * 1024) {
-      ER("Image must be smaller than 5 MB.");
+    if (photos.some((photo) => photo.size > 5 * 1024 * 1024)) {
+      ER("Each image must be smaller than 5 MB.");
       B(false);
       return;
     }
     if (
-      photo &&
-      !["image/jpeg", "image/png", "image/webp"].includes(photo.type)
+      photos.some(
+        (photo) =>
+          !["image/jpeg", "image/png", "image/webp"].includes(photo.type),
+      )
     ) {
-      ER("Use JPG, PNG or WebP.");
+      ER("Use JPG, PNG or WebP images.");
       B(false);
       return;
     }
     const old = products.find((p) => p.id === editing);
-    let image_url = old?.image_url || "",
-      image_path = old?.image_path || null;
-    if (photo) {
+    const uploadedImages = [];
+    for (const photo of photos) {
       const ext =
           photo.name
             .split(".")
@@ -463,39 +627,87 @@ function Admin() {
         .from("product-images")
         .upload(path, photo, { contentType: photo.type });
       if (error) {
-        ER("Image upload failed: " + error.message);
+        const cleanup = uploadedImages.map((item) => item.path);
+        const cleanupResult = cleanup.length
+          ? await db.storage.from("product-images").remove(cleanup)
+          : { error: null };
+        ER(
+          `Image upload failed: ${error.message}${
+            cleanupResult.error
+              ? ` Uploaded images could not be cleaned up: ${cleanupResult.error.message}`
+              : ""
+          }`,
+        );
         B(false);
         return;
       }
-      image_path = path;
-      image_url = db.storage.from("product-images").getPublicUrl(path)
-        .data.publicUrl;
+      uploadedImages.push({
+        path,
+        url: db.storage.from("product-images").getPublicUrl(path).data.publicUrl,
+      });
     }
+    const savedImages = [...imageDraft, ...uploadedImages];
+    const savedSizeChart = sizeRows
+      .map(({ size, cm }) => ({ size: size.trim(), cm: cm.trim() }))
+      .filter(({ size }) => size);
     const payload = {
       ...form,
       title: form.title.trim(),
       price: Number(form.price),
       product_code: form.product_code.trim() || null,
-      sizes: form.sizes.trim() || null,
+      sizes: savedSizeChart.map(({ size }) => size).join(", ") || null,
+      size_chart: savedSizeChart,
       colors: form.colors.trim() || null,
       description: form.description.trim() || null,
-      image_url,
-      image_path,
+      image_urls: savedImages.map((item) => item.url),
+      image_paths: savedImages.map((item) => item.path),
+      image_url: savedImages[0].url,
+      image_path: savedImages[0].path,
     };
     const result = editing
       ? await db.from("products").update(payload).eq("id", editing)
       : await db.from("products").insert(payload);
     B(false);
     if (result.error) {
-      ER(result.error.message);
+      const cleanupResult = uploadedImages.length
+        ? await db.storage
+            .from("product-images")
+            .remove(uploadedImages.map((item) => item.path))
+        : { error: null };
+      ER(
+        `${result.error.message}${
+          cleanupResult.error
+            ? ` Uploaded images could not be cleaned up: ${cleanupResult.error.message}`
+            : ""
+        }`,
+      );
       return;
     }
-    if (photo && old?.image_path)
-      await db.storage.from("product-images").remove([old.image_path]);
-    N(editing ? "Product updated." : "Product added to the collection.");
+    const removedPaths = old
+      ? productImages(old)
+          .filter((item) => !imageDraft.some((kept) => kept.path === item.path))
+          .map((item) => item.path)
+          .filter(Boolean)
+      : [];
+    if (removedPaths.length) {
+      const { error: cleanupError } = await db.storage
+        .from("product-images")
+        .remove(removedPaths);
+      if (cleanupError) {
+        N(
+          `${editing ? "Product updated." : "Product added."} Removed photos could not be cleaned up: ${cleanupError.message}`,
+        );
+      } else {
+        N(editing ? "Product updated." : "Product added to the collection.");
+      }
+    } else {
+      N(editing ? "Product updated." : "Product added to the collection.");
+    }
     F(emptyForm);
     ED(null);
-    PH(null);
+    PH([]);
+    ID([]);
+    SZ([{ size: "", cm: "" }]);
     await load();
   }
   async function remove(p) {
@@ -505,8 +717,19 @@ function Admin() {
       ER(error.message);
       return;
     }
-    if (p.image_path)
-      await db.storage.from("product-images").remove([p.image_path]);
+    const imagePaths = productImages(p)
+      .map((item) => item.path)
+      .filter(Boolean);
+    if (imagePaths.length) {
+      const { error: cleanupError } = await db.storage
+        .from("product-images")
+        .remove(imagePaths);
+      if (cleanupError) {
+        ER(`Product deleted, but its photos could not be removed: ${cleanupError.message}`);
+        await load();
+        return;
+      }
+    }
     N("Product deleted.");
     await load();
   }
@@ -573,19 +796,49 @@ function Admin() {
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
-                  onChange={(e) => PH(e.target.files?.[0] || null)}
+                  multiple
+                  onChange={(e) => {
+                    PH((current) => [...current, ...Array.from(e.target.files || [])]);
+                    e.target.value = "";
+                  }}
                 />
                 <ImagePlus />
-                <b>
-                  {photo
-                    ? photo.name
-                    : editing
-                      ? "Choose a replacement photo"
-                      : "Upload product photography"}
-                </b>
-                <span>JPG, PNG or WebP · up to 5 MB</span>
-                <small>PRODUCT IMAGE *</small>
+                <b>Add product photos</b>
+                <span>Select multiple JPG, PNG or WebP · up to 5 MB each</span>
+                <small>PRODUCT PHOTOS *</small>
               </label>
+              {(imageDraft.length > 0 || photos.length > 0) && (
+                <div className="photo-list" aria-label="Selected product photos">
+                  {imageDraft.map((item, index) => (
+                    <div className="photo-item" key={item.path || item.url}>
+                      <img src={item.url} alt={`Product photo ${index + 1}`} />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          ID((current) => current.filter((_, i) => i !== index))
+                        }
+                        aria-label={`Remove product photo ${index + 1}`}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {photos.map((photo, index) => (
+                    <div className="photo-file" key={`${photo.name}-${photo.lastModified}-${index}`}>
+                      <span>{photo.name}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          PH((current) => current.filter((_, i) => i !== index))
+                        }
+                        aria-label={`Remove ${photo.name}`}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <label>
                 PRODUCT NAME *
                 <input
@@ -650,14 +903,65 @@ function Admin() {
                   </select>
                 </label>
               </div>
-              <label>
-                SIZES
-                <input
-                  value={form.sizes}
-                  onChange={(e) => set("sizes", e.target.value)}
-                  placeholder="S, M, L, XL or Free size"
-                />
-              </label>
+              <fieldset className="size-guide-editor">
+                <legend>SIZE GUIDE <span>Measurements in centimetres</span></legend>
+                {sizeRows.map((row, index) => (
+                  <div className="size-guide-row" key={index}>
+                    <label>
+                      SIZE
+                      <input
+                        value={row.size}
+                        onChange={(e) =>
+                          SZ((current) =>
+                            current.map((item, i) =>
+                              i === index ? { ...item, size: e.target.value } : item,
+                            ),
+                          )
+                        }
+                        placeholder="S"
+                      />
+                    </label>
+                    <label>
+                      CM
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={row.cm}
+                        onChange={(e) =>
+                          SZ((current) =>
+                            current.map((item, i) =>
+                              i === index ? { ...item, cm: e.target.value } : item,
+                            ),
+                          )
+                        }
+                        placeholder="96"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="remove-size"
+                      onClick={() =>
+                        SZ((current) =>
+                          current.length > 1
+                            ? current.filter((_, i) => i !== index)
+                            : [{ size: "", cm: "" }],
+                        )
+                      }
+                      aria-label={`Remove size row ${index + 1}`}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="add-size"
+                  onClick={() => SZ((current) => [...current, { size: "", cm: "" }])}
+                >
+                  <Plus size={15} /> Add size
+                </button>
+              </fieldset>
               <label>
                 COLOURS
                 <input
@@ -730,7 +1034,10 @@ function Admin() {
             <div className="inventory-list">
               {filtered.map((p) => (
                 <article key={p.id}>
-                  <img src={p.image_url} alt={p.title} />
+                  <img
+                    src={productImages(p)[0]?.url || p.image_url}
+                    alt={p.title}
+                  />
                   <div className="item-info">
                     <b>{p.title}</b>
                     <span>

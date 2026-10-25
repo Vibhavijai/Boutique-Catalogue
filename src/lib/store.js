@@ -10,7 +10,7 @@ export const ready = !!(
 );
 export const db = ready ? createClient(url, key) : null;
 export const shop = {
-  name: import.meta.env.VITE_SHOP_NAME || "MAISON VASTRA",
+  name: import.meta.env.VITE_SHOP_NAME || "Zeya",
   tag: import.meta.env.VITE_SHOP_TAGLINE || "CLOTHING, CURATED",
   wa: (import.meta.env.VITE_WHATSAPP_NUMBER || "919876543210").replace(
     /\D/g,
