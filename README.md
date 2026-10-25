@@ -84,6 +84,15 @@ git push -u origin main
 6. Deploy. Cloudflare gives you a public `*.pages.dev` URL. If you change environment variables later, trigger a new deployment because Vite reads them at build time.
 7. Test `/`, `/collection/men`, `/collection/women`, `/admin/login`. Sign in and test add/edit/hide/delete.
 
+## Deploy as a Cloudflare Worker
+
+The `wrangler.jsonc` configuration serves the Vite build as Worker static assets and enables SPA fallback for React Router routes. Its compatibility date must not be later than the current date.
+
+1. Use Node.js 22 or newer, then install project dependencies with `npm install`.
+2. Authenticate with `npx wrangler login`.
+3. Set the `VITE_` environment variables for the production build, then run `npm run deploy` to build and publish the Worker.
+4. Use `npm run worker:dev` to test the Worker locally after building.
+
 Official guides:
 
 - https://developers.cloudflare.com/pages/get-started/git-integration/

@@ -22,7 +22,7 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
-import { db, ready, shop, price, waLink, image, demos } from "./lib/store.js";
+import { db, ready, shop, price, waLink, image } from "./lib/store.js";
 
 function useTheme() {
   const [theme, setTheme] = useState(
@@ -156,9 +156,8 @@ function Collection() {
   const { gender = "women" } = useParams();
   const currentGender = gender.toLowerCase() === "men" ? "Men" : "Women";
   const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts] = useState(
-    demos.filter((product) => product.gender === currentGender),
-  );
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(ready);
   const [category, setCategory] = useState(
     searchParams.get("category") || "All",
   );
@@ -168,29 +167,28 @@ function Collection() {
   }, [searchParams]);
 
   useEffect(() => {
-    setProducts(demos.filter((product) => product.gender === currentGender));
-    if (!ready) return;
+    setProducts([]);
+    if (!ready) {
+      setLoading(false);
+      return;
+    }
 
+    let active = true;
+    setLoading(true);
     db.from("products")
       .select("*")
       .eq("gender", currentGender)
       .eq("available", true)
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
-        if (error) return;
-        const savedProducts = data || [];
-        const hasShirts = savedProducts.some(
-          (product) => product.category.toLowerCase() === "shirts",
-        );
-        setProducts(
-          currentGender === "Men" && !hasShirts
-            ? [
-                ...savedProducts,
-                ...demos.filter((product) => product.category === "Shirts"),
-              ]
-            : savedProducts,
-        );
+        if (!active) return;
+        if (!error) setProducts(data || []);
+        setLoading(false);
       });
+
+    return () => {
+      active = false;
+    };
   }, [currentGender]);
 
   const visibleProducts = products.filter(
@@ -234,7 +232,9 @@ function Collection() {
           ))}
         </nav>
         <section className="section collection-results">
-          {visibleProducts.length ? (
+          {loading ? (
+            <p className="not-updated">Loading collection...</p>
+          ) : visibleProducts.length ? (
             <div className="grid four">
               {visibleProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
