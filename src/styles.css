@@ -1004,7 +1004,7 @@ footer {
   gap: 13px;
 }
 .upload {
-  height: 132px;
+  min-height: 132px;
   border: 1px dashed #c8b6a8;
   background: var(--surface-soft);
   display: flex;
@@ -1018,19 +1018,36 @@ footer {
   padding: 10px;
 }
 .upload input {
-  position: absolute;
-  inset: 0;
   width: 100%;
-  height: 100%;
-  opacity: 0;
+  max-width: 260px;
+  color: var(--ink);
+  font-size: 10px;
+  letter-spacing: normal;
+}
+.upload input::file-selector-button {
+  margin-right: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--rust);
+  background: var(--rust);
+  color: #fff;
+  font: 600 10px "DM Sans", sans-serif;
   cursor: pointer;
 }
-.upload b {
+.upload input::-webkit-file-upload-button {
+  margin-right: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--rust);
+  background: var(--rust);
+  color: #fff;
+  font: 600 10px "DM Sans", sans-serif;
+  cursor: pointer;
+}
+.upload > b {
   font-size: 10px;
   color: var(--ink);
   letter-spacing: normal;
 }
-.upload span {
+.upload > span {
   font-size: 8px;
   color: var(--muted);
   letter-spacing: normal;

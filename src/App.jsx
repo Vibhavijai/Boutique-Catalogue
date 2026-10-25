@@ -613,6 +613,25 @@ function Admin() {
       B(false);
       return;
     }
+    const { error: schemaError } = await db
+      .from("products")
+      .select("image_urls,image_paths,size_chart")
+      .limit(0);
+    if (schemaError) {
+      const missingColumns =
+        schemaError.code === "PGRST204" ||
+        schemaError.code === "42703" ||
+        /column .* does not exist|could not find the .* column/i.test(
+          schemaError.message,
+        );
+      ER(
+        missingColumns
+          ? "Multiple product photos and size measurements are not enabled in the database yet. Run supabase-schema.sql in the Supabase SQL Editor, then try again."
+          : `Could not verify the product database setup: ${schemaError.message}`,
+      );
+      B(false);
+      return;
+    }
     const old = products.find((p) => p.id === editing);
     const uploadedImages = [];
     for (const photo of photos) {
@@ -792,21 +811,31 @@ function Admin() {
               </div>
             </div>
             <form onSubmit={save}>
-              <label className="upload">
+              <div className="upload">
                 <input
                   type="file"
-                  accept="image/png,image/jpeg,image/webp"
+                  accept="image/*"
+                  aria-label="Choose product photos"
                   multiple
                   onChange={(e) => {
-                    PH((current) => [...current, ...Array.from(e.target.files || [])]);
+                    PH((current) => [
+                      ...current,
+                      ...Array.from(e.target.files || []),
+                    ]);
                     e.target.value = "";
                   }}
                 />
                 <ImagePlus />
-                <b>Add product photos</b>
-                <span>Select multiple JPG, PNG or WebP · up to 5 MB each</span>
+                <b>
+                  {photos.length
+                    ? `${photos.length} photo${photos.length === 1 ? "" : "s"} selected`
+                    : "Choose product photos"}
+                </b>
+                <span>
+                  Select one or more photos · JPG, PNG or WebP · up to 5 MB each
+                </span>
                 <small>PRODUCT PHOTOS *</small>
-              </label>
+              </div>
               {(imageDraft.length > 0 || photos.length > 0) && (
                 <div className="photo-list" aria-label="Selected product photos">
                   {imageDraft.map((item, index) => (
