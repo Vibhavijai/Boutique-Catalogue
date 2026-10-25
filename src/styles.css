@@ -1016,35 +1016,27 @@ footer {
   text-align: center;
   color: var(--rust);
   padding: 10px;
+  cursor: pointer;
+}
+.upload:focus-within {
+  outline: 2px solid var(--rust);
+  outline-offset: 3px;
 }
 .upload input {
-  width: 100%;
-  max-width: 260px;
-  color: var(--ink);
-  font-size: 10px;
-  letter-spacing: normal;
-}
-.upload input::file-selector-button {
-  margin-right: 8px;
-  padding: 9px 12px;
-  border: 1px solid var(--rust);
-  background: var(--rust);
-  color: #fff;
-  font: 600 10px "DM Sans", sans-serif;
-  cursor: pointer;
-}
-.upload input::-webkit-file-upload-button {
-  margin-right: 8px;
-  padding: 9px 12px;
-  border: 1px solid var(--rust);
-  background: var(--rust);
-  color: #fff;
-  font: 600 10px "DM Sans", sans-serif;
-  cursor: pointer;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .upload > b {
-  font-size: 10px;
-  color: var(--ink);
+  border: 1px solid var(--rust);
+  background: var(--rust);
+  padding: 11px 16px;
+  color: #fff;
+  font-size: 11px;
   letter-spacing: normal;
 }
 .upload > span {

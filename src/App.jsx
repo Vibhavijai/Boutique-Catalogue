@@ -594,7 +594,7 @@ function Admin() {
       return;
     }
     if (!imageDraft.length && !photos.length) {
-      ER("Choose a product image.");
+      ER("Choose at least one image using “Choose product images” before saving.");
       B(false);
       return;
     }
@@ -811,11 +811,13 @@ function Admin() {
               </div>
             </div>
             <form onSubmit={save}>
-              <div className="upload">
+              <label className="upload" htmlFor="product-photo-input">
                 <input
+                  id="product-photo-input"
                   type="file"
                   accept="image/*"
                   aria-label="Choose product photos"
+                  aria-describedby="product-photo-help"
                   multiple
                   onChange={(e) => {
                     PH((current) => [
@@ -828,14 +830,14 @@ function Admin() {
                 <ImagePlus />
                 <b>
                   {photos.length
-                    ? `${photos.length} photo${photos.length === 1 ? "" : "s"} selected`
-                    : "Choose product photos"}
+                    ? `${photos.length} photo${photos.length === 1 ? "" : "s"} selected · choose more`
+                    : "Choose product images"}
                 </b>
-                <span>
-                  Select one or more photos · JPG, PNG or WebP · up to 5 MB each
+                <span id="product-photo-help">
+                  Select one or more images · JPG, PNG or WebP · up to 5 MB each
                 </span>
                 <small>PRODUCT PHOTOS *</small>
-              </div>
+              </label>
               {(imageDraft.length > 0 || photos.length > 0) && (
                 <div className="photo-list" aria-label="Selected product photos">
                   {imageDraft.map((item, index) => (
