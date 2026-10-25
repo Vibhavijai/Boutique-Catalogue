@@ -1016,13 +1016,8 @@ footer {
   text-align: center;
   color: var(--rust);
   padding: 10px;
-  cursor: pointer;
 }
-.upload:focus-within {
-  outline: 2px solid var(--rust);
-  outline-offset: 3px;
-}
-.upload input {
+.upload .visually-hidden {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -1031,12 +1026,28 @@ footer {
   clip-path: inset(50%);
   white-space: nowrap;
 }
-.upload > b {
+.upload-trigger {
   border: 1px solid var(--rust);
   background: var(--rust);
   padding: 11px 16px;
   color: #fff;
   font-size: 11px;
+  font-weight: 600;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+.upload-trigger:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.upload-trigger:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: 3px;
+}
+.upload > b {
+  min-height: 12px;
+  color: var(--ink);
+  font-size: 10px;
   letter-spacing: normal;
 }
 .upload > span {

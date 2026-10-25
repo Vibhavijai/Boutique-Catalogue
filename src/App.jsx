@@ -523,6 +523,7 @@ function Admin() {
     [error, ER] = useState(""),
     [busy, B] = useState(false),
     nav = useNavigate();
+  const photoInput = useRef(null);
   const { theme, toggleTheme } = useTheme();
   const load = async () => {
     if (!db) return;
@@ -553,6 +554,14 @@ function Admin() {
   }, [nav]);
   function set(k, v) {
     F((old) => ({ ...old, [k]: v }));
+  }
+  function choosePhotos(e) {
+    const selected = Array.from(e.currentTarget.files || []);
+    if (selected.length) {
+      PH((current) => [...current, ...selected]);
+      ER("");
+    }
+    e.currentTarget.value = "";
   }
   function edit(p) {
     ED(p.id);
@@ -811,33 +820,37 @@ function Admin() {
               </div>
             </div>
             <form onSubmit={save}>
-              <label className="upload" htmlFor="product-photo-input">
+              <div className="upload">
                 <input
+                  ref={photoInput}
                   id="product-photo-input"
+                  className="visually-hidden"
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   aria-label="Choose product photos"
                   aria-describedby="product-photo-help"
                   multiple
-                  onChange={(e) => {
-                    PH((current) => [
-                      ...current,
-                      ...Array.from(e.target.files || []),
-                    ]);
-                    e.target.value = "";
-                  }}
+                  onChange={choosePhotos}
                 />
                 <ImagePlus />
-                <b>
+                <button
+                  className="upload-trigger"
+                  type="button"
+                  onClick={() => photoInput.current?.click()}
+                  aria-describedby="product-photo-help"
+                >
+                  Choose product images
+                </button>
+                <b aria-live="polite">
                   {photos.length
-                    ? `${photos.length} photo${photos.length === 1 ? "" : "s"} selected · choose more`
-                    : "Choose product images"}
+                    ? `${photos.length} image${photos.length === 1 ? "" : "s"} selected`
+                    : ""}
                 </b>
                 <span id="product-photo-help">
                   Select one or more images · JPG, PNG or WebP · up to 5 MB each
                 </span>
                 <small>PRODUCT PHOTOS *</small>
-              </label>
+              </div>
               {(imageDraft.length > 0 || photos.length > 0) && (
                 <div className="photo-list" aria-label="Selected product photos">
                   {imageDraft.map((item, index) => (
